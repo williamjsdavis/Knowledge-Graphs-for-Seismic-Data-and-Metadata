@@ -1,3 +1,9 @@
+
+
+[![DOI](https://zenodo.org/badge/685387479.svg)](https://zenodo.org/badge/latestdoi/685387479)
+
+
+
 # Knowledge-Graphs-for-Seismic-Data-and-Metadata
 This repository contains code to support the paper "Knowledge Graphs for Seismic Data and Metadata" by William Davis and Cassandra R. Hunt.
 
