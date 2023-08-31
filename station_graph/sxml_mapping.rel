@@ -1,0 +1,166 @@
+/*
+    StationXML graph
+
+    The station_sxml graph is constructed here from JSONLines 
+    formatted data, source_stationXML, inserted into the database. 
+    The JSONLines data is pre-transformed to use entity nodes as
+    delimiters for lists of networks, stations, and channels.
+
+    The graph can be combined with other station graphs to form 
+    station_kg. In this manuscript, the StationXML data is the
+    only station metadata used.
+*/
+
+/*
+    Nodes
+
+    The entity and value type constructors defined here are used
+    to convert raw data to nodes in the graph of the appropriate type.
+*/
+
+module station_sxml
+
+    // Entities
+
+    def Network = first[source_stationXML]
+    def Station = first[source_stationXML[_,:Station]]
+    def ChannelGroup = first[source_stationXML[_,:Station,_,:Channel]]
+    def Channel = first[source_stationXML[_,:Station,_,:Channel,_]]
+
+    // Edges between entities
+
+    def manages(network, station) = source_stationXML(network,:Station,station,k...) from k...
+    def managed_by = transpose[manages]
+    
+    def channel_group(station,channelgroup) = source_stationXML(_,:Station,station,:Channel,channelgroup,k...) from k...
+    def in_station = transpose[channel_group]
+    
+    def channel(channelgroup,channel) = source_stationXML(_,:Station,_,:Channel,channelgroup,channel,k...) from k...
+    def in_channel_group = transpose[channel]
+
+end
+
+// Values
+
+// Network
+
+def node_map:Network:NetworkCode = ^NetworkCode
+def edge_map:Network:NetworkCode = :"@code", :code
+
+// Station
+
+def node_map:Station:StationCode = ^StationCode
+def edge_map:Station:StationCode = :"@code", :code
+
+def node_map:Station:Latitude[x] = ^Latitude[parse_float[x]]
+def edge_map:Station:Latitude = :Latitude, :at_latitude
+
+def node_map:Station:Longitude[x] = ^Longitude[parse_float[x]]
+def edge_map:Station:Longitude = :Longitude, :at_longitude
+
+def node_map:Station:Elevation[x] = ^Elevation[parse_float[x]]
+def edge_map:Station:Elevation = :Elevation, :at_elevation
+
+// ChannelGroup
+
+def node_map:ChannelGroup:ChannelGroupCode = ^ChannelGroupCode
+def edge_map:ChannelGroup:ChannelGroupCode = :"@locationCode", :code
+
+// Channel
+
+def node_map:Channel:ChannelCode = ^ChannelCode
+def edge_map:Channel:ChannelCode = :"@code", :code
+
+def node_map:Channel:Depth[x] = ^Depth[parse_float[x]]
+def edge_map:Channel:Depth = :Depth, :at_depth
+
+def node_map:Channel:InstrumentType[x] = ^InstrumentType[substring[x, 2, 2]]
+def edge_map:Channel:InstrumentType = :"@code", :instrument_type
+
+def node_map:Channel:BandType[x] = ^BandType[substring[x, 1, 1]]
+def edge_map:Channel:BandType = :"@code", :band_type
+
+def node_map:Channel:Orientation[x] = ^Orientation[substring[x, 3, 3]]
+def edge_map:Channel:Orientation = :"@code", :orientation
+
+/* 
+    Edges
+
+    These relations define the binary edges in the station_sxml graph.
+    They use the edge_map and node_map relations to transform the source
+    data into the target schema.
+*/
+
+// Edges 
+
+def station_sxml =
+    (edge_label, source, target);
+    (:value, target, target_raw)
+    from edge_label, source, target, target_label, target_raw, json_label
+    where
+        source_stationXML(source, json_label, target_raw) and
+        edge_map[:Network,target_label](json_label, edge_label) and
+        node_map[:Network,target_label](target_raw, target)
+
+def station_sxml =
+    (edge_label, source, target);
+    (:value, target, target_raw)
+    from edge_label, source, target, target_label, target_raw, json_label
+    where
+        source_stationXML(_,:Station, source, json_label, target_raw) and
+        edge_map[:Station,target_label](json_label, edge_label) and
+        node_map[:Station,target_label](target_raw, target)
+
+def station_sxml =
+    (edge_label, source, target);
+    (:value, target, target_raw)
+    from edge_label, source, target, target_label, target_raw, json_label
+    where
+        source_stationXML(_,:Station, _, :Channel, source, _, json_label, target_raw) and
+        edge_map[:ChannelGroup,target_label](json_label, edge_label) and
+        node_map[:ChannelGroup,target_label](target_raw, target)
+
+def station_sxml =
+    (edge_label, source, target);
+    (:value, target, target_raw)
+    from edge_label, source, target, target_label, target_raw, json_label...
+    where
+        source_stationXML(_,:Station, _, :Channel, _, source, json_label..., target_raw) and
+        edge_map[:Channel,target_label](json_label..., edge_label) and
+        node_map[:Channel,target_label](target_raw, target)
+
+// Datetime attributes
+
+def stationXML_datetime = 
+    :"@startDate", :operational_from;
+    :"@endDate" , :operational_until
+
+def station_sxml(edge_label, channel, dt) = 
+    source_stationXML(_,:Station,_,:Channel,_,channel,attr,dt_string) and
+    stationXML_datetime(attr,edge_label) and
+    parse_datetime(dt_string, "YYYY-mm-ddTHH:MM:SS.ssss", dt)
+    from attr, dt_string
+
+/* 
+    Integrity Constraints 
+
+    A set of higher-order definitions for integrity constraints is
+    defined in the ic_logic module in ic_logic.rel.
+
+    These ic definitions take as arguments the station_sxml graph, and 
+    relations declaring the event graph scheme (station_schema and 
+    station_ic) defined in station_model.rel.
+*/
+
+// All schema labels must be present in the graph
+ic station_schema_label_in_graph(label) { 
+    ic_logic:schema_label_in_graph[station_sxml,station_schema](label) 
+}
+
+// Mandatory roles, ex: For every Event, Event has event_id
+ic station_src_mandatory(nlabel,elabel) { 
+    ic_logic:src_mandatory_role[station_sxml, station_ic:src_mandatory_role](nlabel, elabel)
+}
+ic station_tgt_mandatory(nlabel,elabel) { 
+    ic_logic:tgt_mandatory_role[station_sxml, station_ic:tgt_mandatory_role](nlabel, elabel)
+}

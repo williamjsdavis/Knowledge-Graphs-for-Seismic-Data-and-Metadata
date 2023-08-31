@@ -1,0 +1,20 @@
+/*
+    This query produces a set of event record latitudes and longitudes
+    for events discovered with the filtered_contributor_event query.
+    The table view produced by this query is used to generate the 
+    points in Figure 4 of the manuscript.
+*/
+
+// Listing 2
+
+def list_positions = 
+    :Name, event, contributor_name;
+    :Latitude, event, latitude;
+    :Longitude, event, longitude
+    from event in event_kg:EventRecord, contributor_name, latitude, longitude
+    where
+        filtered_contributor_event(contributor_name,event) and
+        ^Latitude(latitude, event_kg:at_latitude[event]) and
+        ^Longitude(longitude, event_kg:at_longitude[event])
+
+def output = table[list_positions]

@@ -1,0 +1,47 @@
+/*
+    This query produces a binary relation containing each contributor, by name, 
+    along with the total number of events from the contributor matching the query.
+
+    output =
+        NCSN	31478
+        NEIC	25
+        USGS_ci	35777
+        USGS_nc	22930
+        USGS_nn	30708
+        USGS_us	77
+        USGS_uu	53
+        USGS_uw	58
+*/
+
+// Listing 1
+
+def filter_event_CA(event) = 
+    filter_latitude(32.6,42.6,event) and
+    filter_longitude(-126.2,-113.7,event)
+    
+def filtered_contributor_event(contributor_name,event) = 
+    filter_event_CA(event) and
+    event_kg:contributed(contributor,event) and
+    event_kg:name(contributor,contributor_name)
+    from contributor in event_kg:Contributor
+
+def count_events(contributor_name,event_total) = 
+    count(filtered_contributor_event[contributor_name],event_total)
+
+def output = count_events
+
+// Helper relations
+
+@inline
+def filter_latitude[lat_min,lat_max](event) = 
+    event_kg:at_latitude(event, lat) and
+    ^Latitude(lat_val, lat) and
+    (lat_val > lat_min) and (lat_val < lat_max)
+    from lat_val, lat
+
+@inline
+def filter_longitude[lon_min,lon_max](event) = 
+    event_kg:at_longitude(event, lon) and
+    ^Longitude(lon_val, lon) and
+    (lon_val > lon_min) and (lon_val < lon_max)
+    from lon_val, lon

@@ -1,0 +1,23 @@
+/*
+    This query produces a set of latitudes and longitudes for
+    seismic station, event record pairs produced by the inner_core_query.
+    The results of this query were used to produce Figure 6 of the manuscript.
+*/
+
+def list_positions = 
+    :Event_Latitude, pair, event_lat;
+    :Event_Longitude, pair, event_lon;
+    :Station_Latitude, pair, station_lat;
+    :Station_Longitude, pair, station_lon
+    from station in station_kg:Station, event in event_kg:EventRecord
+    where
+        inner_core_query(event,station) and
+        ^Latitude(station_lat, station_kg:at_latitude[station]) and
+        ^Longitude(station_lon, station_kg:at_longitude[station]) and
+        ^Latitude(event_lat, event_kg:at_latitude[event]) and
+        ^Longitude(event_lat, event_kg:at_longitude[event]) and
+        ^Pair(event, station, pair)
+
+entity type Pair = Entity, Entity
+
+def output = table[list_positions]

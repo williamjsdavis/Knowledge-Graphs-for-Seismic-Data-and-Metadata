@@ -1,0 +1,30 @@
+def json_stationXML_raw = load_json[sxml_config]
+
+def network_json[network] = json_stationXML_raw[:FDSNStationXML, :Network, :[], network_index]
+    from network_index, network_code
+    where
+        json_stationXML_raw(:FDSNStationXML, :Network, :[], network_index, :"@code", network_code) and
+        ^Network(network_code, network)
+
+def station_json[network, :Station, station] = network_json[network, :Station, :[], station_index]
+    from station_index, station_code
+    where
+        network_json(network, :Station, :[], station_index, :"@code", station_code) and
+        ^Station(network, station_code, station)
+
+def channel_json[network, :Station, station, :Channel, channelgroup, channel] = station_json[network, :Station, station, :Channel, :[], channel_index]
+    from channel_index, channelgroup_code, channel_code, start_date
+    where
+        station_json(network, :Station, station, :Channel, :[], channel_index, :"@locationCode", channelgroup_code) and
+        station_json(network, :Station, station, :Channel, :[], channel_index, :"@code", channel_code) and
+        station_json(network, :Station, station, :Channel, :[], channel_index, :"@startDate", start_date) and
+        ^ChannelGroup(station, channelgroup_code, channelgroup) and
+        ^Channel(channelgroup, channel_code, start_date, channel)
+
+def json_stationXML = channel_json
+def json_stationXML(network, :Station, station, k, v...) = 
+    station_json(network, :Station, station, k, v...) and not {:Channel}(k)
+def json_stationXML(network, k, v...) = 
+    network_json(network, k, v...) and not {:Station}(k)
+
+def insert:source_stationXML = json_stationXML

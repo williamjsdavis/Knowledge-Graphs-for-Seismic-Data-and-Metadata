@@ -1,0 +1,104 @@
+/*
+    The inner_core_query relation produces a set of station, event record pairs
+    that match the requirements described in the manuscript for an inner core
+    study.
+
+    This query was used to produce Figure 6 of the manuscript. The commented line
+    in the event_query restricts the event records to events that occurred in 2020.
+    This filter was used in Figure 6 of the manuscript.
+*/
+
+// Listing 5
+
+@inline
+def filter_epicentral_distance(event,station) = 
+    great_circle_distance(
+        event_kg:at_latitude[event], 
+        event_kg:at_longitude[event],
+        station_kg:at_latitude[station],
+        station_kg:at_longitude[station],
+        distance
+    ) and
+    (147 < distance) and (distance < 153)
+    from distance
+
+// Listing 6
+
+// The commented line should be uncommented to produce only those events
+// which occurred in the year 2020.
+def event_query(event) = 
+    depth_below[10](event) and
+    filter_event_magnitude[5.5,7](event) and
+    // datetime_year_UTC(event_kg:occurred_at[event], 2020) and
+    ( filter_latitude[event_kg,55,90](event) or
+      filter_latitude[event_kg,-90,-55](event) )
+
+def station_query(station, channel) = 
+    station_kg:channel_group(station,channelgroup) and
+    station_kg:channel(channelgroup,channel) and
+    ( station_kg:band_type(channel,^BandType["B"]) or 
+      station_kg:band_type(channel,^BandType["H"]) ) and
+    station_kg:instrument_type(channel,^InstrumentType["H"]) and
+    ( filter_latitude[station_kg,55,90](station) or
+      filter_latitude[station_kg,-90,-55](station) )
+    from channelgroup
+
+def inner_core_query(event,station) = 
+    event_query(event) and
+    station_query(station,channel) and
+    event_in_channel_operational_range(event,channel) and
+    filter_epicentral_distance(event,station)
+    from channel
+
+def output = count[inner_core_query]
+
+// Helper relations
+
+@inline
+def filter_latitude[G,lat_min,lat_max](event) = 
+    G:at_latitude(event, lat) and
+    ^Latitude(lat_val, lat) and
+    (lat_val > lat_min) and (lat_val < lat_max)
+    from lat_val, lat
+
+@inline
+def filter_longitude[G,lon_min,lon_max](event) = 
+    G:at_longitude(event, lon) and
+    ^Longitude(lon_val, lon) and
+    (lon_val > lon_min) and (lon_val < lon_max)
+    from lon_val, lon
+
+@inline
+def depth_below[min_depth](event) = 
+    ^Depth(depth, event_kg:at_depth[event]) and
+    (depth >= min_depth)
+    from depth
+
+@inline
+def filter_event_magnitude[mag_min,mag_max](event) = 
+    ^Magnitude(mag_val, event_kg:has_magnitude[event]) and
+    (mag_val > mag_min) and (mag_val < mag_max)
+    from mag_val
+
+@inline
+def great_circle_distance(p_lat,p_lon,q_lat,q_lon, dist) =
+    ^Latitude(p_lat_raw, p_lat) and
+    ^Longitude(p_lon_raw, p_lon) and
+    ^Latitude(q_lat_raw, q_lat) and
+    ^Longitude(q_lon_raw, q_lon) and
+    distance_gcp1_deg(p_lat_raw, p_lon_raw, q_lat_raw, q_lon_raw, dist)
+    from p_lat_raw, p_lon_raw, q_lat_raw, q_lon_raw
+
+@inline
+def distance_gcp1_deg[p_lat,p_lon,q_lat,q_lon] = 
+    rad2deg[
+        haversine[1,deg2rad[p_lat], deg2rad[p_lon], deg2rad[q_lat], deg2rad[q_lon]]
+    ]
+
+@inline
+def event_in_channel_operational_range(event, channel) = 
+    station_kg:operational_from(channel, start_dt) and
+    station_kg:operational_until(channel, end_dt) and
+    event_kg:occurred_at(event, event_dt) and
+    (event_dt > start_dt) and (event_dt < end_dt)
+    from start_dt, end_dt, event_dt

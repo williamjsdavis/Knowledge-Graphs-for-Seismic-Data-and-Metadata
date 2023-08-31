@@ -1,0 +1,17 @@
+/*
+    This query produces a set of latitudes and longitudes for
+    stations produced by the station_query.
+    The results of this query were used to produce Figure 6 of the manuscript.
+*/
+
+def list_positions_station = 
+    :Station_Latitude, station, station_lat;
+    :Station_Longitude, station, station_lon
+    from 
+        station in station_kg:Station, station_lat, station_lon
+    where
+        station_query(station,_) and
+        ^Latitude(station_lat, station_kg:at_latitude[station]) and
+        ^Longitude(station_lon, station_kg:at_longitude[station])
+
+def output = table[list_positions_station]

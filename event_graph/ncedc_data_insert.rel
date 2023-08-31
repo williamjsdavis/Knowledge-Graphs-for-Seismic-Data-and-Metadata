@@ -1,0 +1,18 @@
+def ncedc_csv_raw = load_csv[ncedc_config]
+
+def ncedc_config:schema =
+    :DateTime, "string";
+    :Latitude, "float";
+    :Longitude, "float";
+    :Depth, "float";
+    :Magnitude, "float";
+    :MagType, "string";
+    :NbStations, "string";
+    :Gap, "string";
+    :Distance, "string";
+    :RMS, "float";
+    :Source, "string";
+    :EventID, "string"
+
+def insert:ncedc_csv[col,event] = ncedc_csv_raw[col,i]
+    from i where ^EventRecord(ncedc_csv_raw[:EventID,i], event)

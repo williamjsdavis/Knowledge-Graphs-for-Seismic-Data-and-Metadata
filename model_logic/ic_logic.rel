@@ -1,0 +1,15 @@
+// Integrity Constraint Logic
+
+@inline module ic_logic
+
+    // Schema must exist
+    // Each label in the schema must be present in the graph
+    def schema_label_in_graph(G,S,label) = first[S](label) implies first[G](label)
+    // Each label present in the graph must be present in the schema
+    def graph_label_in_schema(G,S,label) = first[G](label) implies first[S](label)
+    
+    // Mandatory roles on binary relations
+    def src_mandatory_role(G,S,nl,el) = S(nl,el) implies total(G[nl], G[el])
+    def tgt_mandatory_role(G,S,nl,el) = S(nl,el) implies total(G[nl], transpose[G[el]])
+
+end

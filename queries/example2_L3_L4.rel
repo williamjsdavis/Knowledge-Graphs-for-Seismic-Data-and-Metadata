@@ -1,0 +1,63 @@
+/*
+    The ridgecrest_query produces a set of stations near the Ridgecrest
+    earthquake that may be of interest for a seismology study.
+*/
+
+// Listing 3
+
+def event_in_channel_operational_range(event, channel) = 
+    station_kg:operational_from(channel, start_dt) and
+    station_kg:operational_until(channel, end_dt) and
+    event_kg:occurred_at(event, event_dt) and
+    (event_dt > start_dt) and (event_dt < end_dt)
+    from start_dt, end_dt, event_dt
+
+// Listing 4
+
+def ridgecrest_event(event) = 
+    event_kg:event_id(event,^EventId["C201907060319A"])
+
+def ridgecrest_query(station) = 
+    station_kg:channel_group(station,channelgroup) and
+    station_kg:channel(channelgroup,channel) and
+    is_low_gain_vertical(channel) and
+    event_in_channel_operational_range(ridgecrest_event, channel) and
+    count(station_kg:channel[channelgroup], 3) and
+    event_station_radius_range[0.0,2.0](ridgecrest_event,station)
+    from channelgroup, channel
+
+def output = count[ridgecrest_query]
+
+// Helper relations
+
+@inline
+def is_low_gain_vertical(channel in station_kg:Channel) = 
+    ( station_kg:code(channel,^ChannelCode["BNZ"]) or 
+      station_kg:code(channel,^ChannelCode["HNZ"]) )
+
+@inline
+def event_station_radius_range[r_min,r_max](event,station) = 
+    (r_min < dist) and (dist < r_max) and
+    great_circle_distance(
+        event_kg:at_latitude[event], 
+        event_kg:at_longitude[event],
+        station_kg:at_latitude[station],
+        station_kg:at_longitude[station],
+        dist
+    )
+    from dist
+
+@inline
+def great_circle_distance(p_lat,p_lon,q_lat,q_lon, dist) =
+    ^Latitude(p_lat_raw, p_lat) and
+    ^Longitude(p_lon_raw, p_lon) and
+    ^Latitude(q_lat_raw, q_lat) and
+    ^Longitude(q_lon_raw, q_lon) and
+    distance_gcp1_deg(p_lat_raw, p_lon_raw, q_lat_raw, q_lon_raw, dist)
+    from p_lat_raw, p_lon_raw, q_lat_raw, q_lon_raw
+
+@inline
+def distance_gcp1_deg[p_lat,p_lon,q_lat,q_lon] = 
+    rad2deg[
+        haversine[1,deg2rad[p_lat], deg2rad[p_lon], deg2rad[q_lat], deg2rad[q_lon]]
+    ]

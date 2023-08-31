@@ -1,0 +1,16 @@
+/*
+    This query produces a set of latitudes and longitudes for
+    event records produced by the event_query.
+    The results of this query were used to produce Figure 6 of the manuscript.
+*/
+
+def list_positions_event = 
+    :Event_Latitude, event, event_lat;
+    :Event_Longitude, event, event_lon
+    from 
+        event in event_query, event_lat, event_lon
+    where
+        ^Latitude(event_lat, event_kg:at_latitude[event]) and
+        ^Longitude(event_lon, event_kg:at_longitude[event])
+
+def output = table[list_positions_event]

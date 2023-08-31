@@ -1,0 +1,71 @@
+/*
+    Entity and value type definitions. These are the constructors
+    used to convert raw data into entities (hashes) and custom 
+    value types.
+*/
+
+// Entity types
+entity type Contributor = String
+entity type EventRecord = String
+
+// Value types
+value type EventId = String
+value type ContributorCode = String
+value type CatalogCode = String
+value type Latitude = Float
+value type Longitude = Float
+value type Depth = Float
+value type Magnitude = Float
+
+/*
+    The event_schema relation declares the expected schema
+    of the graph, in (edge label, source, target) triples 
+    (predicate-subject-object form) for labelled binary edges 
+    and (node label, source) form for labelled entity type nodes.
+*/
+
+// Schema
+@inline
+def event_schema =
+    :EventRecord, Entity;
+    :Contributor, Entity;
+    :contributor, Entity, Entity;
+    :contributed, Entity, Entity;
+    :occurred_at, Entity, DateTime;
+    :at_depth, Entity, Depth;
+    :at_latitude, Entity, Latitude;
+    :at_longitude, Entity, Longitude;
+    :code, Entity, ContributorCode;
+    :catalog_code, Entity, CatalogCode;
+    :event_id, Entity, EventId;
+    :has_magnitude, Entity, Magnitude;
+    :name, Entity, String;
+    :contributor_code, Entity, ContributorCode
+
+/*
+    For readability, we abstract the logic for each data
+    integrity constraint using higher order relations declared 
+    ic_logic.rel. The event_ic module relation declared here
+    is an input to those higher order relations, which test that
+    the schema declared here follows the constraint described
+    by the relation name.
+
+    For example, the Event entity plays a mandatory role in the 
+    event_id fact type. That is, every :EventRecord node will have an 
+    :event_id edge and it will be a source node for that edge.
+
+    The ic relations themselves are declared in the data mapping
+    step which defines the graph for each source.
+*/
+
+// All integrity constraints for event graph
+module event_ic
+    // Mandatory roles
+    def src_mandatory_role =
+        :EventRecord, :event_id;
+        :EventRecord, :contributor;
+        :Contributor, :code
+
+    def tgt_mandatory_role = 
+        :EventRecord, :contributed
+end

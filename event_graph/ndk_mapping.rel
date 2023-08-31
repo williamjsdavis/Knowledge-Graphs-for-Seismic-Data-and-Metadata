@@ -1,0 +1,153 @@
+/*
+    NDK graph
+
+    The event_ndk graph is constructed here from JSONLines 
+    formatted data, ndk_json, inserted into the database. 
+    The JSONLines data is pre-converted from XML format to 
+    be compatible with the RAI KGS and preserves the XML 
+    schema.
+
+    The graph will be combined with other event record 
+    graphs to form event_kg.
+*/
+
+/*
+    Nodes
+
+    The entity and value type constructors defined here are used
+    to convert raw data to nodes in the graph of the appropriate type.
+*/
+
+// Entities
+
+def event_ndk:EventRecord = first[ndk_json]
+
+def event_ndk:Contributor = first[event_ndk:contributed]
+def node_map:Contributor[x] = ^Contributor[ndk_rename_contributor[x]]
+def edge_map:Contributor = :hypocenter_reference_catalog, :contributor
+
+// Values
+
+def node_map:EventId = ^EventId
+def edge_map:EventId = :CMT_event_name, :event_id
+
+@inline def node_map:ContributorCode[x] = ^ContributorCode[ndk_rename_contributor[x]]
+def edge_map:ContributorCode = :hypocenter_reference_catalog, :contributor_code
+
+@inline def node_map:CatalogCode = ^CatalogCode
+def edge_map:CatalogCode = :hypocenter_reference_catalog, :catalog_code
+
+
+def node_map:Latitude[x] = ^Latitude[parse_float[x]]
+def edge_map:Latitude = :latitude, :at_latitude
+
+def node_map:Longitude[x] = ^Longitude[parse_float[x]]
+def edge_map:Longitude = :longitude, :at_longitude
+
+def node_map:Depth[x] = ^Depth[parse_float[x]]
+def edge_map:Depth = :depth, :at_depth
+
+def node_map:Magnitude[x] = ^Magnitude[parse_magnitude[x]]
+def edge_map:Magnitude = :magnitudes, :has_magnitude
+
+def parse_magnitude[x] = parse_float[
+    v : sort[regex_match_all["[0-9]+.[0-9]+", x]][2](_, v)
+]
+
+// Create and link datetime
+
+def event_ndk:occurred_at(event, dt) =
+    ndk_json(event, :date, json_date) and
+    ndk_json(event, :time, json_time) and
+    concat(json_date, json_time, json_datetime) and
+    cleanse_datetime(json_datetime, dt)
+    from json_date, json_time, json_datetime
+
+@inline def cleanse_datetime[x] =
+    parse_datetime[string_replace[x, ":60.0", ":59.9"], "YYYY/mm/ddHH:MM:SS.s"]
+
+/* 
+    Edges
+
+    These relations define the binary edges in the event_ndk graph.
+    They use the edge_map and node_map relations to transform the source
+    data into the target schema.
+*/
+
+// Events
+
+def event_ndk =
+    (edge_label, event, target);
+    (:value, target, target_raw)
+    from edge_label, event, target, target_label, target_raw, json_label
+    where
+        ndk_json(event, json_label, target_raw) and
+        edge_map[target_label](json_label, edge_label) and
+        node_map[target_label](target_raw, target)
+
+// Contributors
+
+def event_ndk =
+    (:contributed, contributor, event);
+    (:name, contributor, contributor_name);
+    (:code, contributor, contributor_code);
+    (:catalog_code, contributor, catalog_code)
+    from contributor, event, contributor_code, catalog_code, contributor_name
+    where
+        event_ndk:contributor(event, contributor) and
+        event_ndk:contributor_code(event, contributor_code) and
+        ndk_rename_contributor[event_ndk:value[contributor_code]] = contributor_name and
+        event_ndk:catalog_code(event, catalog_code)
+
+/* 
+    Source-specific attributes
+    
+    These are optional, NDK-specific edges, in addition to those 
+    explicitly defined in the event ontology.
+*/
+
+def event_ndk = json_label, event, target_raw
+    from json_label, event, target_raw
+    where 
+        ndk_json(event, json_label, target_raw) and
+        not edge_map[_](json_label, _)
+
+// Renaming values
+def ndk_rename_contributor =
+    "PDE", "NEIC";
+    "PDEW", "NEIC";
+    "PDEQ", "NEIC";
+    "SWE", "Ekstrom";
+    "SWEQ", "Ekstrom";
+    "SWEM", "Ekstrom";
+    "DMC", "IRIS";
+    "HSW", "IRIS";
+    "ISC", "ISC";
+    "MLE", "IRIS";
+    "MLI", "NEIC";
+    "REB", "IRIS";
+    "", "missing"
+
+/* 
+    Integrity Constraints 
+
+    A set of higher-order definitions for integrity constraints is
+    defined in the ic_logic module in ic_logic.rel.
+
+    These ic definitions take as arguments the event_ndk graph, and 
+    relations declaring the event graph scheme (event_schema and 
+    event_ic) defined in event_model.rel.
+*/
+
+// All schema labels must be present in the graph
+ic event_schema_label_in_graph(label) { 
+    ic_logic:schema_label_in_graph[event_ndk,event_schema](label) 
+}
+
+// Mandatory roles, ex: For every Event, Event has event_id
+ic event_src_mandatory(nlabel,elabel) { 
+    ic_logic:src_mandatory_role[event_ndk, event_ic:src_mandatory_role](nlabel, elabel)
+}
+ic event_tgt_mandatory(nlabel,elabel) { 
+    ic_logic:tgt_mandatory_role[event_ndk, event_ic:tgt_mandatory_role](nlabel, elabel)
+}

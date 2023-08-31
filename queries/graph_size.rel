@@ -1,0 +1,20 @@
+/*
+    For each example, we use this set of queries to produce the metadata
+    about the graphs which is presented in the text of the manuscript.
+*/
+
+def output:event_edges = count[n1,n2: event_kg(label,n1,n2) and first[event_schema](label) from label]
+def output:station_edges = count[n1,n2: station_kg(label,n1,n2) and first[station_schema](label) from label ]
+def output:event_nodes = count[n: event_kg(label,_,n) or event_kg(label,n,_) and first[event_schema](label) from label ]
+def output:station_nodes = count[n: station_kg(label,_,n) or station_kg(label,n,_) and first[station_schema](label) from label ]
+def output:Station_entities = count[n: station_kg(:Station,n) ]
+def output:Event_entities = count[n: event_kg(:EventRecord,n) ]
+def output:Contributor_entities = count[n: event_kg(:Contributor,n) ]
+def output:event_edge_labels = count[label: event_kg[label](_,_)]
+def output:station_edge_labels = count[label: station_kg[label](_,_)]
+def output:event_node_labels = count[label: event_kg[label](_)]
+def output:station_node_labels = count[label: station_kg[label](_)]
+
+def output:ndk_edge_labels = count[label: event_ndk[label](_,_)]
+def output:usgs_edge_labels = count[label: event_usgs[label](_,_)]
+def output:ncedc_edge_labels = count[label: event_ncedc[label](_,_)]

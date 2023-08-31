@@ -1,0 +1,28 @@
+def usgs_csv_raw = load_csv[usgs_config]
+
+def usgs_config:schema =
+    :time, "datetime";
+    :latitude, "float";
+    :longitude, "float";
+    :depth, "float";
+    :mag, "float";
+    :magType, "string";
+    :nst, "string";
+    :gap, "string";
+    :dmin, "string";
+    :rms, "string";
+    :net, "string";
+    :id, "string";
+    :updated, "string";
+    :place, "string";
+    :type, "string";
+    :horizontalError, "float";
+    :depthError, "float";
+    :magError, "float";
+    :magNst, "string";
+    :status, "string";
+    :locationSource, "string";
+    :magSource, "string"
+
+def insert:usgs_csv[col,event] = usgs_csv_raw[col,i]
+    from i where ^EventRecord(usgs_csv_raw[:id,i], event)

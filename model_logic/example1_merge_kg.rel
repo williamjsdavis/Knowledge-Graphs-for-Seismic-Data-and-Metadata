@@ -1,0 +1,5 @@
+// Event record knowledge graph
+def event_kg = event_ndk; event_usgs; event_ncedc
+
+// Station knowledge graph
+def station_kg = station_sxml

@@ -1,0 +1,104 @@
+/*
+    Entity and value type definitions. These are the constructors
+    used to convert raw data into entities (hashes) and custom 
+    value types.
+*/
+
+// Entity types
+entity type Network = String
+entity type Station = Entity, String
+entity type ChannelGroup = Entity, String
+entity type Channel = Entity, String, String
+
+// Value types
+
+// Network
+value type NetworkCode = String
+
+// Station
+value type StationCode = String
+value type Latitude = Float
+value type Longitude = Float
+value type Elevation = Float
+
+// Channel Group
+value type ChannelGroupCode = String
+
+// Channel
+value type ChannelCode = String
+value type BandType = String
+value type InstrumentType = String
+value type Orientation = String
+value type Depth = Float
+
+/*
+    The event_schema relation declares the expected schema
+    of the graph, in (edge label, source, target) triples 
+    (predicate-subject-object form) for labelled binary edges 
+    and (node label, source) form for labelled entity type nodes.
+*/
+
+// Schema
+@inline
+def station_schema =
+    // Nodes
+    :Network, Entity;
+    :Station, Entity;
+    :ChannelGroup, Entity;
+    :Channel, Entity;
+    // Network
+    :code, Entity, NetworkCode;
+    :manages, Entity, Entity;
+    // Station
+    :managed_by, Entity, Entity;
+    :at_latitude, Entity, Latitude;
+    :at_longitude, Entity, Longitude;
+    :at_elevation, Entity, Elevation;
+    :code, Entity, StationCode;
+    :channel_group, Entity, Entity;
+    // Channel Group
+    :in_station, Entity, Entity;
+    :code, Entity, ChannelGroupCode;
+    :channel, Entity, Entity;
+    // Channel
+    :in_channel_group, Entity, Entity;
+    :code, Entity, ChannelCode;
+    :band_type, Entity, BandType;
+    :instrument_type, Entity, InstrumentType;
+    :orientation, Entity, Orientation;
+    :at_depth, Entity, Depth;
+    :operational_until, Entity, DateTime;
+    :operational_from, Entity, DateTime
+
+/*
+    For readability, we abstract the logic for each data
+    integrity constraint using higher order relations declared 
+    ic_logic.rel. The event_ic module relation declared here
+    is an input to those higher order relations, which test that
+    the schema declared here follows the constraint described
+    by the relation name.
+
+    For example, the Station entity plays a mandatory role in the 
+    managed_by fact type. That is, every :Station node will have a 
+    :managed_by edge and it will be a source node for that edge.
+
+    The ic relations themselves are declared in the data mapping
+    step which defines the graph for each source.
+*/
+
+// All integrity constraints for station graph
+module station_ic
+    // Mandatory roles
+    def src_mandatory_role =
+        :Station, :managed_by;
+        :Station, :code;
+        :ChannelGroup, :in_station;
+        :ChannelGroup, :code;
+        :Channel, :in_channel_group;
+        :Channel, :code
+    
+    def tgt_mandatory_role = 
+        :Station, :manages;
+        :ChannelGroup, :channel_group;
+        :Channel, :channel
+end

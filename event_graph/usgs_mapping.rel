@@ -1,0 +1,123 @@
+/*
+    USGS graph
+
+    The event_usgs graph is constructed here from CSV 
+    formatted data, usgs_csv, inserted into the database. 
+    The graph will be combined with other event record 
+    graphs to form event_kg.
+*/
+
+/*
+    Nodes
+
+    The entity and value type constructors defined here are used
+    to convert raw data to nodes in the graph of the appropriate type.
+*/
+
+// Entities
+
+def event_usgs:EventRecord = first[usgs_csv[_]]
+
+def event_usgs:Contributor = first[event_usgs:contributed]
+
+@inline def node_map:Contributor[x] = ^Contributor[usgs_rename_contributor[x]]
+def edge_map:Contributor = :net, :contributor
+
+// Values
+
+def node_map:EventId = ^EventId
+def edge_map:EventId = :id, :event_id
+
+@inline def node_map:ContributorCode[x] = ^ContributorCode[usgs_rename_contributor[x]]
+def edge_map:ContributorCode = :net, :contributor_code
+
+@inline
+def usgs_rename_contributor[x] = concat["USGS_",x]
+
+@inline def node_map:CatalogCode = ^CatalogCode
+def edge_map:CatalogCode = :net, :catalog_code
+
+def node_map:Latitude[x] = ^Latitude[x]
+def edge_map:Latitude = :latitude, :at_latitude
+
+def node_map:Longitude[x] = ^Longitude[x]
+def edge_map:Longitude = :longitude, :at_longitude
+
+def node_map:Depth[x] = ^Depth[x]
+def edge_map:Depth = :depth, :at_depth
+
+def node_map:Magnitude[x] = ^Magnitude[x]
+def edge_map:Magnitude = :mag, :has_magnitude
+
+@inline def node_map:DateTime[x] = x
+def edge_map:DateTime = :time, :occurred_at
+
+/* 
+    Edges
+
+    These relations define the binary edges in the event_ndk graph.
+    They use the edge_map and node_map relations to transform the source
+    data into the target schema.
+*/
+
+// Events
+
+def event_usgs =
+    (edge_label, event, target);
+    (:value, target, target_raw)
+    from edge_label, event, target, target_label, target_raw, col_label
+    where
+        usgs_csv(col_label, event, target_raw) and
+        edge_map[target_label](col_label, edge_label) and
+        node_map[target_label](target_raw, target)
+
+// Contributors
+
+def event_usgs =
+    (:contributed, contributor, event);
+    (:name, contributor, contributor_name);
+    (:code, contributor, contributor_code);
+    (:catalog_code, contributor, catalog_code)
+    from contributor, event, contributor_code, catalog_code, contributor_name
+    where
+        event_usgs:contributor(event, contributor) and
+        event_usgs:contributor_code(event, contributor_code) and
+        usgs_rename_contributor[event_usgs:value[contributor_code]] = contributor_name and
+        event_usgs:catalog_code(event, catalog_code)
+
+/* 
+    Source-specific attributes
+    
+    These are optional, USGS-specific edges, in addition to those 
+    explicitly defined in the event ontology.
+*/
+
+def event_usgs = col_label, event, target_raw
+    from col_label, event, target_raw
+    where 
+        usgs_csv(col_label, event, target_raw) and
+        not edge_map[_](col_label, _)
+
+/* 
+    Integrity Constraints 
+
+    A set of higher-order definitions for integrity constraints is
+    defined in the ic_logic module in ic_logic.rel.
+
+    These ic definitions take as arguments the event_usgs graph, and 
+    relations declaring the event graph scheme (event_schema and 
+    event_ic) defined in event_model.rel.
+*/
+
+// All schema labels must be present in the graph
+ic event_schema_label_in_graph(label) { 
+    ic_logic:schema_label_in_graph[event_usgs,event_schema](label) 
+}
+
+// Mandatory roles, ex: For every Event, Event has event_id
+ic event_src_mandatory(nlabel,elabel) { 
+    ic_logic:src_mandatory_role[event_usgs, event_ic:src_mandatory_role](nlabel, elabel)
+}
+ic event_tgt_mandatory(nlabel,elabel) { 
+    ic_logic:tgt_mandatory_role[event_usgs, event_ic:tgt_mandatory_role](nlabel, elabel)
+}

@@ -1,0 +1,16 @@
+/*
+    This query produces a set of seismic station latitudes and longitudes
+    for stations identified by the ridgequest_query, used to generate the 
+    yellow triangle points in Figure 5 of the manuscript.
+*/
+
+def list_positions = 
+    :Latitude, station, latitude;
+    :Longitude, station, longitude
+    from station in station_kg:Station, latitude, longitude
+    where
+        ridgecrest_query(station) and
+        ^Latitude(latitude,station_kg:at_latitude[station]) and
+        ^Longitude(longitude, station_kg:at_longitude[station])
+
+def output = table[list_positions]

@@ -1,0 +1,4 @@
+def ndk_json_raw = load_json[ndk_config]
+
+def insert:ndk_json[event] = ndk_json_raw[:[],i]
+    from i where ^EventRecord(ndk_json_raw[:[], i, :CMT_event_name], event)
