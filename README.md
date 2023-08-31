@@ -5,7 +5,7 @@
 
 
 # Knowledge-Graphs-for-Seismic-Data-and-Metadata
-This repository contains code to support the paper "Knowledge Graphs for Seismic Data and Metadata" by William Davis and Cassandra R. Hunt.
+This repository contains code to support the paper "Knowledge Graphs for Seismic Data and Metadata" ([DOI:10.31223/X5XQ1D](https://doi.org/10.31223/X5XQ1D)) by William Davis and Cassandra R. Hunt.
 
 # Contributors
 - William Davis* (Cecil H. and Ida M. Green Institute of Geophysics and Planetary Physics, Scripps Institution of Oceanography, University of California, San Diego; RelationalAI)
