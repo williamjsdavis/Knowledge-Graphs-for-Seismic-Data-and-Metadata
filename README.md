@@ -15,3 +15,8 @@ The two authors contributed equally to this code.
 
 \* Corresponding author, email: w1davis@ucsd.edu
 
+# Supporting Dataset
+
+- Resubmitted on 14/09/2023: [DOI:10.5281/zenodo.8346843](https://doi.org/10.5281/zenodo.8346843)
+- Originally submitted on 31/08/2023: [DOI:10.6078/D1P430](https://doi.org/10.6078/D1P430)
+
