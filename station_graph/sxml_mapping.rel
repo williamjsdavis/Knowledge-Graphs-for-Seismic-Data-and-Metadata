@@ -63,8 +63,8 @@ def edge_map:Station:Elevation = :Elevation, :at_elevation
 
 // ChannelGroup
 
-def node_map:ChannelGroup:ChannelGroupCode = ^ChannelGroupCode
-def edge_map:ChannelGroup:ChannelGroupCode = :"@locationCode", :code
+def node_map:ChannelGroup:LocationCode = ^LocationCode
+def edge_map:ChannelGroup:LocationCode = :"@locationCode", :code
 
 // Channel
 

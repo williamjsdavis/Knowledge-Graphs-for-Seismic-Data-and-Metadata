@@ -22,7 +22,7 @@ value type Longitude = Float
 value type Elevation = Float
 
 // Channel Group
-value type ChannelGroupCode = String
+value type LocationCode = String
 
 // Channel
 value type ChannelCode = String
@@ -58,7 +58,7 @@ def station_schema =
     :channel_group, Entity, Entity;
     // Channel Group
     :in_station, Entity, Entity;
-    :code, Entity, ChannelGroupCode;
+    :code, Entity, LocationCode;
     :channel, Entity, Entity;
     // Channel
     :in_channel_group, Entity, Entity;

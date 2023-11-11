@@ -13,12 +13,12 @@ def station_json[network, :Station, station] = network_json[network, :Station, :
         ^Station(network, station_code, station)
 
 def channel_json[network, :Station, station, :Channel, channelgroup, channel] = station_json[network, :Station, station, :Channel, :[], channel_index]
-    from channel_index, channelgroup_code, channel_code, start_date
+    from channel_index, location_code, channel_code, start_date
     where
-        station_json(network, :Station, station, :Channel, :[], channel_index, :"@locationCode", channelgroup_code) and
+        station_json(network, :Station, station, :Channel, :[], channel_index, :"@locationCode", location_code) and
         station_json(network, :Station, station, :Channel, :[], channel_index, :"@code", channel_code) and
         station_json(network, :Station, station, :Channel, :[], channel_index, :"@startDate", start_date) and
-        ^ChannelGroup(station, channelgroup_code, channelgroup) and
+        ^ChannelGroup(station, location_code, channelgroup) and
         ^Channel(channelgroup, channel_code, start_date, channel)
 
 def json_stationXML = channel_json
